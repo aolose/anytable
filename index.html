@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Anytable by aolose</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Anytable</h1>
+      <h2 class="project-tagline">a table/grid</h2>
+      <a href="https://github.com/aolose/anytable" class="btn">View on GitHub</a>
+      <a href="https://github.com/aolose/anytable/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/aolose/anytable/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <p><strong>Anytable API</strong></p>
+
+<p><strong>简介：</strong></p>
+
+<p>Anytable 表格是完全原生JS写的表格插件。实现了mmgrid的大部分API，在表格渲染性能上有很大提升。</p>
+
+<p>特点：</p>
+
+<p>一、它预先计算每行数据高度，然后根据滚动条位置只局部渲染可视部分的表格，以节约性能。</p>
+
+<p>二、renderer方法可以返回Node类型，方便事件的自由加载而不用拼凑Html</p>
+
+<p>三、列的拖拉拽很流畅，其样式直接写入CSSRule，存放在头部饭在头部看不到样式具体内容。</p>
+
+<p>四、底部面板控制列显示以及位置（同样由拖拽实现）</p>
+
+<p>五、有功能全面的筛选页【进行中】</p>
+
+<p>六、具备简单的列冻结功能</p>
+
+<p><strong>Anytable ( selector , options )</strong></p>
+
+<p>说明：Anytable 类 ，需要使用 new 来实例化，取该选择器的第一个匹配元素生并成表格控件</p>
+
+<p>类型：类</p>
+
+<p>参数：</p>
+
+<p>selector - {String } 选择器</p>
+
+<p>options - {Object} 表格配置 具体参见后面的【表格配置】</p>
+
+<p><strong>destory ()</strong></p>
+
+<p>说明：销毁表格（功能需改进）</p>
+
+<p>类型：方法</p>
+
+<p>参数：无</p>
+
+<p>返回：无</p>
+
+<p><strong>pager</strong></p>
+
+<p>说明：存放页码信息，直接赋值/取值即可</p>
+
+<p>类型：对象</p>
+
+<p>包含：</p>
+
+<p>cur  - 当前页</p>
+
+<p>size         - 页面显示条数</p>
+
+<p>total - 总条数</p>
+
+<p><strong>showMsg ( text , loadingIcon )</strong></p>
+
+<p>说明：在表格中显示有遮罩层的消息</p>
+
+<p>类型：方法</p>
+
+<p>参数：</p>
+
+<p>text - {String} 显示的文字</p>
+
+<p>loadingIcon - {Boolean} 是否显示加载图标动画 默认 false</p>
+
+<p>返回：this</p>
+
+<p><strong>hideMsg ()</strong></p>
+
+<p>说明：销毁消息</p>
+
+<p>类型：方法</p>
+
+<p>参数：无</p>
+
+<p>返回：this</p>
+
+<p><strong>row ( index )</strong></p>
+
+<p>说明：返回指定行号的数据，行号为该数据在筛选后数据的所在位置</p>
+
+<p>类型：方法</p>
+
+<p>参数：index - {Number} 数据所在行</p>
+
+<p>返回：{Object} 对应行的数据</p>
+
+<p><strong>addRow ( datas, index )</strong></p>
+
+<p>说明：将数据添加到指定行</p>
+
+<p>类型：方法</p>
+
+<p>参数：</p>
+
+<p>datas - { Array|Object } 添加的数据 可以是多条数据的数组或者单个对象</p>
+
+<p>index - {Number}                 数据所在行</p>
+
+<p>返回：{Object} 当前的Anytable对象（todo：返回需统一）</p>
+
+<p><strong>updateRow ( datas, index ,extend)</strong></p>
+
+<p>说明：将数据更新到指定行</p>
+
+<p>类型：方法</p>
+
+<p>参数：</p>
+
+<p>datas - { Array|Object } 更新的数据 可以是多条数据的数组或者单个对象</p>
+
+<p>index - {Number}                 数据所在行</p>
+
+<p>extend - {Boolean}                 继承添加的数据而不是替换(继承可以保存之前的状态信息【未测】) 默认false</p>
+
+<p>返回：this</p>
+
+<p><strong>removeRow (index)</strong></p>
+
+<p>说明：移除指定条件的数据</p>
+
+<p>类型：方法</p>
+
+<p>参数：</p>
+
+<p>index</p>
+
+<ul>
+<li><p>{Number}        移除指定行</p></li>
+<li><p>{Array}                移除多行</p></li>
+<li><p>{Function}</p></li>
+</ul>
+
+<p>function(data)</p>
+
+<p>说明：移除 <strong>不</strong> 符合条件的行(即方法返回false 或无返回会移除该行)</p>
+
+<p>入参：data 遍历的每行数据</p>
+
+<p>返回：{ Boolean } true ： 保留该行 others：移除该行</p>
+
+<p>返回：this</p>
+
+<p><strong>select ( index )</strong></p>
+
+<p>说明：选中符合条件的指定行</p>
+
+<p>类型：方法</p>
+
+<p>参数：</p>
+
+<p>index</p>
+
+<ul>
+<li><p>{Number}         数据所在行</p></li>
+<li><p>{Array}                 未实现</p></li>
+<li><p>{Function}         未实现</p></li>
+</ul>
+
+<p>返回：this</p>
+
+<p><strong>deselect( index )</strong></p>
+
+<p>说明：取消选中符合条件的指定行</p>
+
+<p>类型：方法</p>
+
+<p>参数：</p>
+
+<p>index</p>
+
+<ul>
+<li><p>{Number}         数据所在行</p></li>
+<li><p>{Array}                 未实现</p></li>
+<li><p>{Function}         未实现</p></li>
+</ul>
+
+<p>返回：this</p>
+
+<p><strong>selectedRows ( index )</strong></p>
+
+<p>说明：返回选中行数据</p>
+
+<p>类型：方法</p>
+
+<p>参数：index - {Number}【可选】        返回选中行数据中对应下标的单条数据</p>
+
+<p>返回：{Array}</p>
+
+<p><strong>selectedRowsIndex ( index )</strong></p>
+
+<p>说明：返回选中行数据的行号</p>
+
+<p>类型：方法</p>
+
+<p>参数：index - {Number}【可选】        返回选中行数据行号中对应下标的单条行号</p>
+
+<p>返回：{Array}</p>
+
+<p><strong>rows ()</strong></p>
+
+<p>说明：返回过滤后全部行数据</p>
+
+<p>类型：方法</p>
+
+<p>参数：无</p>
+
+<p>返回：{Array}</p>
+
+<p><strong>initHead ()</strong></p>
+
+<p>说明：初始化表格头部(正常情况下不需要去执行这个方法)</p>
+
+<p>类型：方法</p>
+
+<p>参数：无</p>
+
+<p>返回：this</p>
+
+<p><strong>initFoot ()</strong></p>
+
+<p>说明：初始化表格底部(正常情况下不需要去执行这个方法)</p>
+
+<p>类型：方法</p>
+
+<p>参数：无</p>
+
+<p>返回：this</p>
+
+<p><strong>initView (resetScroll)</strong></p>
+
+<p>说明：渲染可视区域表格</p>
+
+<p>类型：方法</p>
+
+<p>参数：resetScroll - {Boolean} 渲染时候是否将滚动条置顶 默认false</p>
+
+<p>返回：this</p>
+
+<p><strong>load (datas)</strong></p>
+
+<p>说明：载入数据</p>
+
+<p>类型：方法</p>
+
+<p>参数：datas- {Array|Object} 【可选】加载指定的数据,如果没有该参数且在表格配置中配置了url则加载远程数据</p>
+
+<p>返回：this</p>
+
+<p><strong>setData ( datas )</strong></p>
+
+<p>说明：设置表格数据为参数中的数据</p>
+
+<p>类型：方法</p>
+
+<p>参数：datas- {Array|Object} 设置表格的数据为当前数据</p>
+
+<p>返回：this</p>
+
+<p><strong>freeze ( length )</strong></p>
+
+<p>说明：冻结指定长度的列（拖拽后该范围内的列依旧生效）</p>
+
+<p>类型：方法</p>
+
+<p>参数：length- {number} 冻结的列数量</p>
+
+<p>返回：this</p>
+
+<p><strong>【表格配置 options】</strong></p>
+
+<p><strong>options：</strong>
+ <strong>autoLoad</strong></p>
+
+<p>说明：自动加载 默认true （暂未实现false）</p>
+
+<p>类型：Boolean</p>
+
+<p><strong>dataGainer</strong></p>
+
+<p>说明：配置远程数据获取方法</p>
+
+<p>类型：Function</p>
+
+<p>默认：function(url,method,params,done,fail){
+                             ajaxWorker(url,{
+                        type: method,
+                         contentType: "application/json",
+                         dataType: "json",
+                         data:JSON.stringify(params)
+                      }).done(done).fail(fail)
+                   }</p>
+
+<p><strong>url</strong></p>
+
+<p>说明：配置远程数据接口地址</p>
+
+<p>类型：String</p>
+
+<p>默认：undefined</p>
+
+<p><strong>method</strong></p>
+
+<p>说明：配置远程数据获取方法</p>
+
+<p>类型：String</p>
+
+<p>默认：undefined</p>
+
+<p><strong>params</strong></p>
+
+<p>说明：配置远程数据参数</p>
+
+<p>类型：Object</p>
+
+<p>默认：undefined</p>
+
+<p><strong>cache</strong></p>
+
+<p>说明：缓存请求结果【未实现】</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>loadingText</strong></p>
+
+<p>说明：加载数据文字</p>
+
+<p>类型：String</p>
+
+<p>默认：'正在载入'</p>
+
+<p><strong>noDataText</strong></p>
+
+<p>说明：无数据文字</p>
+
+<p>类型：String</p>
+
+<p>默认：'暂无数据'</p>
+
+<p><strong>loadErrorText</strong></p>
+
+<p>说明：无数据文字</p>
+
+<p>类型：String</p>
+
+<p>默认：'数据加载出现异常'</p>
+
+<p><strong>sortBy</strong></p>
+
+<p>说明：排序【未实现】</p>
+
+<p>类型：String</p>
+
+<p>默认：''</p>
+
+<p><strong>nowrap</strong></p>
+
+<p>说明：表格文本换行【未实现】</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>indexColWidth</strong></p>
+
+<p>说明：行号宽度【未实现】</p>
+
+<p>类型：Number</p>
+
+<p>默认：30</p>
+
+<p><strong>indexCol</strong></p>
+
+<p>说明：显示行号【未实现】</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>toolBar</strong></p>
+
+<p>说明：显示底部工具栏</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：true</p>
+
+<p><strong>paging</strong></p>
+
+<p>说明：显示分页</p>
+
+<p>类型：Object</p>
+
+<p>默认：{
+                           remote:false,  // 是否远程分页
+                           pageSize:[100,200,300,500],  //每页显示条数
+                           paramsName:{        // 请求字段映射
+                              total:'total',          // 总条数
+                              size:'pageSize',        // 每页显示多少
+                              cur:'currentPage'                  // 请求页
+                           }
+                }</p>
+
+<p><strong>allowFilter</strong></p>
+
+<p>说明：        是否显示分页【未完成】，允许后，行头移上去有个展开按钮，</p>
+
+<p>点击会有一个复杂的筛选配置页，用于生管理各种筛选条件</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>clickCanSelectRow</strong></p>
+
+<p>说明：点击行是否触发行选中</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：true</p>
+
+<p><strong>checkCol</strong></p>
+
+<p>说明：显示行勾选框</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>multiSelect</strong></p>
+
+<p>说明：允许行多选</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>height</strong></p>
+
+<p>说明：表格区域（不包括头和底部工具栏）高度</p>
+
+<p>类型：Number</p>
+
+<p>默认：300</p>
+
+<p><strong>colMinWidth</strong></p>
+
+<p>说明：最小列宽</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>rowHeight</strong></p>
+
+<p>说明：默认行高</p>
+
+<p>类型：Number</p>
+
+<p>默认：20</p>
+
+<p><strong>changeWidth</strong></p>
+
+<p>说明：允许拖拽改变列宽</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：true</p>
+
+<p><strong>dragRowHeight</strong></p>
+
+<p>说明：允许拖拽改变行高【未实现】</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>dragColumn</strong></p>
+
+<p>说明：允许拖拽列</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：true</p>
+
+<p><strong>cols</strong></p>
+
+<p>说明：列配置 详见【列配置】</p>
+
+<p>类型：Arra</p>
+
+<p>默认：[]</p>
+
+<p><strong>root</strong></p>
+
+<p>说明：远程数据行数据对应的属性名</p>
+
+<p>类型：String</p>
+
+<p>默认：'rows'</p>
+
+<p><strong>scrollBarWidth</strong></p>
+
+<p>说明：滚动条预设宽度，用于对隐藏表格渲染计算</p>
+
+<p>类型：Boolean</p>
+
+<p>默认：false</p>
+
+<p><strong>【列配置】</strong></p>
+
+<p><strong>title</strong></p>
+
+<p>说明：列头显示名称</p>
+
+<p>类型：String</p>
+
+<p>默认：无</p>
+
+<p><strong>name</strong></p>
+
+<p>说明：列对应实际数据字段</p>
+
+<p>类型：String</p>
+
+<p>默认：无</p>
+
+<p><strong>width</strong></p>
+
+<p>说明：列宽</p>
+
+<p>类型：Number</p>
+
+<p>默认：100</p>
+
+<p><strong>align</strong></p>
+
+<p>说明：文字对齐方向</p>
+
+<p>类型：</p>
+
+<p>String         对头和行统一配置</p>
+
+<p>Object         头和行分开配置 e.g:  {head : 'left' , cell : 'right'}</p>
+
+<p>默认：无</p>
+
+<p><strong>renderer (val, item, rowIndex)</strong></p>
+
+<p>说明：设置页面每列的数据渲染，已有的一些Render参见【anyrender】</p>
+
+<p>类型：Function</p>
+
+<p>入参：</p>
+
+<p>val  - {String|Number} 列数据</p>
+
+<p>item - {Object} 行数据</p>
+
+<p>rowIndex -{number} 过滤数据后的行号</p>
+
+<p>this：对应列的文档节点</p>
+
+<p>返回：</p>
+
+<p>{String} 生成的字符串会被解析为HTML插入到对应列节点</p>
+
+<p>{Node} 生成的Node节点会被添加到对应的列节点【推荐这种，便于添加事件】</p>
+
+<p><strong>options</strong></p>
+
+<p>说明：行配置，当前仅支持 options.height - {Number}</p>
+
+<p>类型：Object</p>
+
+<p>默认：无</p>
+
+<p><strong>sort</strong></p>
+
+<p>说明：是否配置排序</p>
+
+<p>类型：Boolean | Object  开启服务端排序【未实现】{remote: rue }</p>
+
+<p>默认：false</p>
+
+<p><strong>rowSelected (item,opt)</strong></p>
+
+<p>说明：行选中触发事件</p>
+
+<p>类型：Function</p>
+
+<p>入参：</p>
+
+<p>item - {Object} 行数据</p>
+
+<p>opt        -{Object} 行状态</p>
+
+<p><strong>rowDesSelected (item,opt)</strong></p>
+
+<p>说明：行取消选中触发事件</p>
+
+<p>类型：Function</p>
+
+<p>入参：</p>
+
+<p>item - {Object} 行数据</p>
+
+<p>opt        -{Object} 行状态</p>
+
+<p><strong>rowSelectChange (item,opt)</strong></p>
+
+<p>说明：行选中状态改变触发事件</p>
+
+<p>类型：Function</p>
+
+<p>入参：</p>
+
+<p>item - {Object} 行数据</p>
+
+<p>opt        -{Object} 行状态</p>
+
+<p>【行API】 <strong>tr 上的方法/属性：</strong></p>
+
+<p><strong>select ()</strong></p>
+
+<p>说明：选中该行 触发行选中事件 如状态改变触发选中状态改变事件</p>
+
+<p>类型：Function</p>
+
+<p>入参：无</p>
+
+<p>返回：无</p>
+
+<p><strong>desSelect( )</strong></p>
+
+<p>说明：取消选中该行 触发行取消选中事件 如状态改变触发选中状态改变事件</p>
+
+<p>类型：Function</p>
+
+<p>入参：无</p>
+
+<p>返回：无</p>
+
+<p><strong>height</strong></p>
+
+<p>说明：或许/改变行高 赋值触发刷新滚动条位置</p>
+
+<p>类型：Number</p>
+
+<p>入参：无</p>
+
+<p>返回：无</p>
+
+<p><strong>【列API】 td上的方法/属性：</strong></p>
+
+<p><strong>getValue ()</strong></p>
+
+<p>说明：返回该位置的实际值</p>
+
+<p>类型：Function</p>
+
+<p>入参：无</p>
+
+<p>返回：{*}</p>
+
+<p><strong>setValue (value,needRender)</strong></p>
+
+<p>说明：设置该位置的值</p>
+
+<p>类型：Function</p>
+
+<p>入参：</p>
+
+<p>value - {*} 设置该位置的值</p>
+
+<p>needRender - {Boolean}  true-重新渲染该位置元素 ， 默认 false</p>
+
+<p>返回：无</p>
+
+<p><strong>anyrender API</strong></p>
+
+<p>这个命名空间的两个方法是用来构造便于使用的Renderer，通过不同的连接书写显示不同需求的Render</p>
+
+<p><strong>create (name, init,func, extra)</strong></p>
+
+<p>说明：创建便捷的Renderer</p>
+
+<p>参数：</p>
+
+<p>name  - {String}         Render名称</p>
+
+<p>init - {Function}         function(opt) 初始化配置 返回opt -{object}</p>
+
+<p>func - {Function}         返回的Render方法</p>
+
+<p>extra - {Object}        拓展的附加Render方法 e.g { number : function( opt, func ){} }</p>
+
+<p>返回：无</p>
+
+<p><strong>extend (a,b)</strong></p>
+
+<p>说明：简单的继承实现</p>
+
+<p><strong>【anyrender.js】</strong> - 存放各种Renderer方法</p>
+
+<p>已有内容</p>
+
+<p><strong>anyrender.edit</strong>  - 点击Cell后显示文本编辑框，失去焦点还原。改变值会同时改变行数据</p>
+
+<p><strong>anyrender.edit.number</strong> - 实现了 <strong>edit</strong> 中方法限制文本只能是数字</p>
+
+<p><strong>anyrender.edit.max (100)</strong> - 实现了 <strong>number</strong> 中的内容，并且规定了输入的最大值</p>
+
+<p><strong>anyrender.edit.min(0)</strong> -        实现了 <strong>number</strong> 中的内容，并且规定了输入的最小值</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/aolose/anytable">Anytable</a> is maintained by <a href="https://github.com/aolose">aolose</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
