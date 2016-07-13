@@ -326,13 +326,21 @@ index
 
 默认：undefined
 
-  **cache**
+**cache**
 
 说明：缓存请求结果【未实现】
 
 类型：Boolean
 
 默认：false
+
+**freeze**
+
+说明：设置冻结列数
+
+类型：Number
+
+默认：0
 
 **loadingText**
 
@@ -731,3 +739,15 @@ extra - {Object}        拓展的附加Render方法 e.g { number : function( opt
 **anyrender.edit.max (100)** - 实现了 **number** 中的内容，并且规定了输入的最大值
 
 **anyrender.edit.min(0)** -        实现了 **number** 中的内容，并且规定了输入的最小值
+
+**anyrender.edit.date** ({                        - { String } 日期选择插件
+
+min:&#39;2016-8-2&#39;,                         - { String } 可选择的最小日期
+
+max:&#39;2016-10-31&#39;,                        - { String } 可选择的最大日期
+
+format:&#39;YYYY/M/D hh:m:s&#39;,        - { String } 日期格式化输出
+
+save:&#39;format&#39;                                - { String } 保存的数据格式 format - 格式化输出 number - 保存数值
+
+});
