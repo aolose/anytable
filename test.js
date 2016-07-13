@@ -9,7 +9,11 @@ var cols = [
 	]},
 	{
 		title: 'c-1', name: 'c1', width: 90,  align:'center',
-		renderer: anyrender.edit.number
+		renderer: anyrender.edit.datePicker({
+			format:'YYYY/M/D hh:m:s',
+			max:'2016-10-31',
+			min:'2016-8-2'
+		})
 	},
 	{
 		title: 'c-2', name: 'c2', width: 90, align:{

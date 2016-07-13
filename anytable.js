@@ -207,7 +207,7 @@
 		};
 
 		// 基于当前时间生成唯一ID
-		var anyId = (1 * (Date.now() + '' + (1000 * Math.random()).toFixed(0)).substr(-8)).toString(36);
+		var anyId = 'AT'+(1 * (Date.now() + '' + (1000 * Math.random()).toFixed(0)).substr(-8)).toString(36);
 		// 样式ID
 		var cssId = 'c_' + anyId;
 		// 表格ID
@@ -218,6 +218,7 @@
 		// 关联样式规则
 		anytable.css = getCSSStyleSheetById(cssId);
 		var defaultOpt = {
+			freeze:0,
 			autoLoad:true,
 			// 数据获取装置
 			dataGainer:function(url,method,params,done,fail){
@@ -278,8 +279,11 @@
 		};
 		var opt = extend({}, defaultOpt, options);
 		anytable.options =opt;
-		var dom = document.querySelector(selector);
-
+		var dom;
+		if(selector instanceof Node)dom = selector;
+		else if('string'===typeof  selector)dom = document.querySelector(selector);
+		else  throw new Error('error selector');
+		if(!dom)return;
 		// 结果排序
 		var sortData = function(data){
 			var rs = sortRules;
@@ -414,7 +418,7 @@
 
 		// 基于左距离获取坐标对应的头部元素
 		var detectSideInsertByClientX = function (x, newCol,row) {
-			var left = x - container.getBoundingClientRect().left + tableBody.scrollLeft;
+			var left = x ;
 			var r = row, cs = [].filter.call(r.cells,function(c){return !c.cssRule||'none'!==c.cssRule.style.display}), lf = 0;
 			for (var i = 0, l = cs.length; i < l; i++) {
 				var c = cs[i], cw = c.offsetWidth;
@@ -1426,6 +1430,15 @@
 			var tracker = colsTemp.length;
 			o.cls = 'anycell__'+tracker;
 			o.tracker = tracker;
+			var css = {
+				position: 'relative'
+			};
+			var type = typeof o.align;
+			if ('string' === type) {
+				css.textAlign = o.align;
+			} else if ('object' === type) {
+				if (o.align.head)css.textAlign = o.align.head;
+			}
 			var hTitle={
 				tag: 'div',
 				text: o.title,
@@ -1468,7 +1481,6 @@
 					dragCol.cols = subCols;
 					addClass(dragCol, 'dragCopy');
 					dragCol.row = row;
-					var leftFix = row.getBoundingClientRect().left - boxRec.left;
 					dragCol._x = selfRec.left-boxRec.left;
 					dragCol.style.left =dragCol._x+'px';
 					dragCol._max = row.offsetWidth - col.offsetLeft - col.offsetWidth;
@@ -1489,7 +1501,7 @@
 						clearTimeout(colMoveTimer);
 						colMoveTimer = setTimeout(function () {
 							if (dragCol) {
-								detectSideInsertByClientX(e.clientX-leftFix, dragCol.fake,row);
+								detectSideInsertByClientX(e.clientX-row.getBoundingClientRect().left, dragCol.fake,row);
 								var moved = e.clientX - dragCol.x;
 								var maxMove = dragCol._max;
 								var minMove = dragCol._min;
@@ -1517,14 +1529,15 @@
 			if(o.cols){
 				var colSpan=0;
 				var _thT = definedDom({tag:'th',children:{
-					tag:'div',class:'anycell_h',children:hTitle
+					css:css,
+					tag:'div',class:'anycell_h',children:hTitle,
 				}});
 				var _th = definedDom({
 					tag:'th',
 					children:{tag:'table',onmousedown: dragFunc,children:[
 						{tag:'tr',children:_thT},
 						{tag:'tr',children:[o.cols.map(function(c,i){
-							var th = createTh(c,i);
+							var th = createTh(extend({},o,c,{cols:false}),i);
 							colSpan+=th.colSpan;
 							return th;
 						})]}
@@ -1664,15 +1677,7 @@
 			h=definedDom(h);
 			if(o.sort)o.sort.el = h;
 			setUnEnumProps(o, '_c', clsN);
-			var css = {
-				position: 'relative'
-			};
-			var type = typeof o.align;
-			if ('string' === type) {
-				css.textAlign = o.align;
-			} else if ('object' === type) {
-				if (o.align.head)css.textAlign = o.align.head;
-			}
+
 			var dragHelper =definedDom({
 				// 拖拽区域
 				tag: 'div',
@@ -2021,16 +2026,21 @@
 			foot:tableFoot,
 			//todo 销毁
 			destory:function(){
+				anytable.css.ownerNode.remove();
+				anytable.data=undefined;
+				anytable.fData=undefined;
+				anytable.sortData=undefined;
+				anytable.vData=undefined;
 				container.remove();
 				window.removeEventListener('resize',asyncHW);
+				for(var k in anytable)delete  anytable[k];
 			},
 			pager:{},
 			freeze:function(index){
-				if('number'===typeof  index){
-					if(index<-1)index=0;
-					setFrozen(index,true);
-					_fzInput.value=index;
-				}
+				index = parseInt(index)||0;
+				if(index<-1)index=0;
+				setFrozen(index,true);
+				_fzInput.value=index;
 				return anytable
 			},
 			showMsg:function(text,loadingIcon){
@@ -2395,16 +2405,9 @@
 			}
 		});
 
-		Object.defineProperties(anytable, {
-			rowsLength: {
-				get: function () {
-					return anytable.vData.length;
-				}
-			}
-		});
-
 		this.initHead();
 		this.initFoot();
+		this.freeze(opt.freeze)
 		dom.appendChild(container);
 		if(opt.autoLoad){
 			this.load()
