@@ -139,7 +139,7 @@
 					return func;
 				}
 			},
-			datePicker:function(opt,func){
+			date:function(opt,func){
 				var fixTime = function(n){
 					return (100+parseInt(n)+'').substr(1);
 				};
