@@ -235,6 +235,16 @@
 
 <p>返回：{Array}</p>
 
+<p><strong>filter ( func )</strong></p>
+
+<p>说明：过滤显示的数据</p>
+
+<p>类型：方法</p>
+
+<p>参数：func -{Function} 过滤每行数据 ，或传入每行数据作为参数 返回true不过滤 false 过滤</p>
+
+<p>返回：无</p>
+
 <p><strong>initHead ()</strong></p>
 
 <p>说明：初始化表格头部(正常情况下不需要去执行这个方法)</p>
@@ -358,6 +368,14 @@
 <p>类型：Number</p>
 
 <p>默认：0</p>
+
+<p><strong>filter</strong></p>
+
+<p>说明：过滤显示的数据</p>
+
+<p>类型：Function -过滤每行数据 ，或传入每行数据作为参数 返回true不过滤 false 过滤</p>
+
+<p>默认：function(){return  true}</p>
 
 <p><strong>loadingText</strong></p>
 
@@ -583,7 +601,7 @@
 
 <p>默认：无</p>
 
-<p><strong>renderer (val, item, rowIndex)</strong></p>
+<p><strong>renderer (val, item, opt)</strong></p>
 
 <p>说明：设置页面每列的数据渲染，已有的一些Render参见【anyrender】</p>
 
@@ -595,7 +613,15 @@
 
 <p>item - {Object} 行数据</p>
 
-<p>rowIndex -{number} 过滤数据后的行号</p>
+<p>opt - {Object} 行状态信息 包括：</p>
+
+<p>opt .renderedIndex 当前行数据在 <strong>所有渲染数据</strong> 中的位置，用于增加删除时候标记</p>
+
+<p>opt.pageIndex 当前行数据在 <strong>当前页数据</strong> 中的位置</p>
+
+<p>opt.allIndex 当前行数据在 <strong>全部数据</strong> 中的位置</p>
+
+<p>key - {String} 列字段</p>
 
 <p>this：对应列的文档节点</p>
 
