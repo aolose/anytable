@@ -13,7 +13,7 @@ var cols = [
 			format:'YYYY/M/D hh:m:s',
 			max:'2016-10-31',
 			min:'2016-8-2'
-		})
+		}).able(function(){return 2*Math.random()>1})
 	},
 	{
 		title: 'c-2', name: 'c2', width: 90, align:{
@@ -21,13 +21,13 @@ var cols = [
 			cell:'right',
 			tasks:[]//
 		},
-		renderer: function (val, item, rowIndex) {
-		this.style.background = colLis[rowIndex % 9];
-		return rowIndex;
+		renderer: function (val, item,opt) {
+		this.style.background = colLis[opt.renderedIndex% 9];
+		return opt.renderedIndex;
 	}
 	},
 	{
-		title: 'c-3', name: 'c3', width: 90,  align:'center',renderer: function (val, item, rowIndex) {
+		title: 'c-3', name: 'c3', width: 90,  align:'center',renderer: function (val, data, opt) {
 		return new Date(val).toLocaleDateString();
 	}
 	},
@@ -42,12 +42,11 @@ var cols2 = [
 	{
 		title: 'c-2', name: 'c2', width: 90, align:{
 			head:'left',
-			cell:'right',
-			tasks:[]//
+			cell:'right'
 		},
-		renderer: function (val, item, rowIndex) {
-		this.style.background = colLis[rowIndex % 9];
-		return rowIndex;
+		renderer: function (val, item,opt) {
+		this.style.background = colLis[opt.renderedIndex % 9];
+		return  opt.renderedIndex;
 	}
 	},
 	{
@@ -122,7 +121,7 @@ var mt2 = new Anytable('#myTable2', {
 		// 服务端
 		//remote:true,
 		// 每页数量
-		pageSize:[200,250,300,500],
+		pageSize:[200,250,300,500]
 		// 如果有该属性则为远程分页
 		// 用于映射本地对应字段
 		//paramsName:{
@@ -164,5 +163,5 @@ datas[6].options={height:100};
 datas[19].options={height:100};
 datas[11].options={height:144};
 mt.setData(datas);
-//mt2.setData(datas);
+mt2.setData(datas);
 //renderTasks

@@ -216,6 +216,16 @@ index
 
 返回：{Array}
 
+**filter ( func )**
+
+说明：过滤显示的数据
+
+类型：方法
+
+参数：func -{Function} 过滤每行数据 ，或传入每行数据作为参数 返回true不过滤 false 过滤
+
+返回：无
+
 **initHead ()**
 
 说明：初始化表格头部(正常情况下不需要去执行这个方法)
@@ -341,6 +351,14 @@ index
 类型：Number
 
 默认：0
+
+**filter**
+
+说明：过滤显示的数据
+
+类型：Function -过滤每行数据 ，或传入每行数据作为参数 返回true不过滤 false 过滤
+
+默认：function(){return  true}
 
 **loadingText**
 
@@ -566,7 +584,7 @@ String         对头和行统一配置
 
 默认：无
 
-**renderer (val, item, rowIndex)**
+**renderer (val, item, opt)**
 
 说明：设置页面每列的数据渲染，已有的一些Render参见【anyrender】
 
@@ -578,7 +596,15 @@ val  - {String|Number} 列数据
 
 item - {Object} 行数据
 
-rowIndex -{number} 过滤数据后的行号
+opt - {Object} 行状态信息 包括：
+
+opt .renderedIndex 当前行数据在 **所有渲染数据** 中的位置，用于增加删除时候标记
+
+opt.pageIndex 当前行数据在 **当前页数据** 中的位置
+
+opt.allIndex 当前行数据在 **全部数据** 中的位置
+
+key - {String} 列字段
 
 this：对应列的文档节点
 

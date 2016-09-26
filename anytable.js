@@ -88,7 +88,7 @@
 	};
 
 	var translate3D = function(dom,a,b,c){
-		if(undefined===dom)return
+		if(undefined===dom)return;
 		var s={};
 		if(dom instanceof Node) s = dom.style;
 		else if(dom instanceof CSSStyleDeclaration) s=dom;
@@ -110,12 +110,13 @@
 	 * */
 	window.anyrender={
 		extend:extend,
+		/**@params name {String}*/
 		create:function (name, init,func, extra) {
 			var render = function (extra) {
 				// 拷贝副本
 				eval('var func =' + func.toString());
 				var opt={};
-				opt=init(opt)||opt;
+				opt=init&&init(opt)||opt;
 				var setGet = function (key) {
 					Object.defineProperty(func, key, {
 						get: function () {
@@ -133,14 +134,14 @@
 					}
 				}
 				// 塞一个 opt~
-				var call = func.call = function () {
-					var args = arguments;
+				var call=func.call = function () {
 					delete func.call;
+					var args = arguments;
 					var self = args[0];
 					var params = [].slice.call(args, 1).concat(opt);
-					var result = func.apply(self, params);
-					func.call = call;
-					return result;
+					var r=func.apply(self, params);
+					func.call=call;
+					return r;
 				};
 				return func;
 			};
@@ -169,7 +170,6 @@
 		setUnEnumProps(anytable, 'vData');
 		// 过滤规则
 		setUnEnumProps(anytable, 'filterRules');
-
 		// 生成带载入动画的文字
 		var loadingText = function(text){
 			if(!text)text=opt.loadingText;
@@ -218,18 +218,20 @@
 		// 关联样式规则
 		anytable.css = getCSSStyleSheetById(cssId);
 		var defaultOpt = {
+			// 保存
+			save:false,//function(opt){},
 			freeze:0,
 			autoLoad:true,
 			// 数据获取装置
 			dataGainer:function(url,method,params,done,fail){
-				ajaxWorker(url,{
+				$.ajax({
+					url:url,
 					type: method,
 					contentType: "application/json",
 					dataType: "json",
 					data:JSON.stringify(params)
 				}).done(done).fail(fail)
 			},
-			//todo ------> options From mmGrid
 			url: undefined,
 			method: undefined,
 			params: undefined,
@@ -253,6 +255,8 @@
 					cur:'currentPage'  // 请求页
 				}
 			},
+			// 行点击事件
+			rowClick:false,
 			// 是否允许筛选
 			allowFilter:false,
 			// 点击选中行
@@ -273,6 +277,7 @@
 			dragColumn: true,
 			// 列配置
 			cols: [],
+			filter:function(d){return true},
 			root:'rows',
 			// 预设滚动条宽度 当前元素隐藏时候使用
 			scrollBarWidth: 20
@@ -345,11 +350,13 @@
 			tempData.length=0;
 			if(anytable.fData)anytable.fData.length=0;
 			var doFilter = function(d){
-				var a = true;
-				for(var i= 0,l=filterRules.length;i<l;i++){
-					if(!filterRules[i].func(d)){
-						a=false;
-						break;
+				var a = opt.filter(d);
+				if(a){
+					for(var i= 0,l=filterRules.length;i<l;i++){
+						if(!filterRules[i].func(d)){
+							a=false;
+							break;
+						}
 					}
 				}
 				return a
@@ -361,7 +368,6 @@
 			}
 			renderDatas();
 		};
-
 		// 整理筛选过滤后需要渲染的数据
 		var renderDatas = function(){
 			anytable.fData=sortData(tempData);
@@ -369,7 +375,6 @@
 				anytable.pager.total = anytable.fData.length;
 			}
 			anytable.pager.cur =anytable.pager.cur||1;
-
 			anytable.vData = anytable.fData;
 			var p = anytable.pager;
 			var start = p.size* (p.cur-1);
@@ -393,7 +398,6 @@
 		var widthDetectDom = definedDom('div', {
 			css: {width: '100%'}
 		});
-
 		// 拖拽辅助线
 		var auxiliaryLine = definedDom('div', {
 			css: {
@@ -410,12 +414,10 @@
 			children: tbody,
 			css: {position: 'relative',css:{marginLeft:'-1px'}}
 		});
-
 		var tCanvas = definedDom('div', {
 			css: {position: 'relative'},
 			children: table
 		});
-
 		// 基于左距离获取坐标对应的头部元素
 		var detectSideInsertByClientX = function (x, newCol,row) {
 			var left = x ;
@@ -438,13 +440,12 @@
 				}
 			}
 		};
-
 		//基于Index移动列
 		var moveColumnByCols = function(){
 			opt.cols = [].map.call(hTable.querySelectorAll(hCellSelector),function(c){return c.parentNode[anyId]});
 			var trackers = opt.cols.map(function(c){
 				return c.tracker
-			})
+			});
 			var move = function(r){
 				var cells =  [].slice.call(r.cells).sort(function(a,b){
 					var tracker1 = a.tracker;
@@ -486,9 +487,9 @@
 			else {
 				console.warn('tCanvas.style.height:',tCanvas.style.height);
 			}
+			if('function'===typeof opt.onRefreshDatasPosition)opt.onRefreshDatasPosition.call(anytable);
 			console.timeEnd('refreshDatasPosition');
 		};
-
 		//根据头部距离获取行号
 		var getIndexByTop = function (t) {
 			var ds = anytable.vData;
@@ -498,7 +499,6 @@
 			}
 			return [i, t - (d && d.top || 0)];
 		};
-
 		// 创建范围的行
 		var createRange = function (a, b) {
 			if (a > b) {
@@ -523,9 +523,10 @@
 				beginDataIndex = beginD[0],
 				endDataIndex = endD[0],
 				tableBegin = rs[0]&&rs[0][anyId].pageIndex||0,
-				tableEnd = rs[rs.length - 1]&&rs[rs.length - 1][anyId].pageIndex||-1,
+				tableEnd = rs[rs.length - 1]&&rs[rs.length - 1][anyId].pageIndex,
 				newTableBegin = Math.max(0,beginDataIndex - 10),
 				newTableEnd = Math.min(anytable.vData.length,endDataIndex + 10);
+			if(tableEnd===undefined)tableEnd=-1;
 			if (tableBegin < newTableBegin) {
 				for (; rs[0] && (rs[0][anyId].pageIndex < newTableBegin); rs[0].remove()) {
 				}
@@ -547,6 +548,7 @@
 			}
 			if (r){
 				translate3D(table,0,tableBody.scrollTop - r.offsetTop - beginD[1],0);
+				anytable.hideMsg();
 			}
 		};
 		var tableBody = definedDom('div', {
@@ -595,12 +597,20 @@
 				background:'#fff'
 			}
 		});
-
 		var tableHead = definedDom('div', {class:'any-head'});
 		var optsTimer = -1;
 		// 列
 		var optCols = definedDom('div');
+		var btnSaveOpt = definedDom('div',{
+			class:'save-opt',
+			onclick:function(){
+				opt.save.call(anytable,opt,btnSaveOpt)
+			}
+		});
 		var optColsT = definedDom({tag:'h5',text:'列管理',class:'dis-select'});
+		if(opt.save){
+			optColsT.appendChild(btnSaveOpt)
+		}
 		//设置面板
 		var optsBoard = definedDom('div',{
 			open:function(){
@@ -628,11 +638,9 @@
 				},300)
 			},
 			class:'opt-board',children:[
-			optColsT,
-			optCols
-		]});
-
-
+				optColsT,
+				optCols
+			]});
 		var actLis;
 		var outClickListener=function(e){
 			if(actLis&&e.target.lis!==actLis){
@@ -646,21 +654,21 @@
 			else actLis=null;
 		};
 		var selOutClick = function(){
-				container.removeEventListener('click',outClickListener);
-				container.addEventListener('click',outClickListener);
+			container.removeEventListener('click',outClickListener);
+			container.addEventListener('click',outClickListener);
 		};
 		var createChoose = function(name,li,width){
 			var createLis = function(o){
 				if(Array.isArray(o)){
 					return  o.map(function(d){
 						return d&&definedDom({
-							tag:'div',
-							onclick: function(e){
-								this.parentNode.el.textContent = d.text;
-								if(d.func)d.func(e)
-							},
-							text: d.text
-						})
+								tag:'div',
+								onclick: function(e){
+									this.parentNode.el.textContent = d.text;
+									if(d.func)d.func(e)
+								},
+								text: d.text
+							})
 					})
 				}
 			};
@@ -756,7 +764,6 @@
 				}
 			})
 		};
-
 		var toggleActDom = function(text,valid,func){
 			return definedDom('div',{
 				text:text,
@@ -775,7 +782,6 @@
 				}
 			})
 		};
-
 		// filter and heightLight
 		var chooseMap = {
 			cols:opt.cols.map(function(d){
@@ -803,9 +809,9 @@
 					ruleDom.ruleDetail.innerHTML='';
 					var el = definedDom('div',
 						{getRule: function () {
-								return 'val===\''+this.children[1].value+'\''
-							}, children: [
-								{tag: 'span', text: '文本：'}, {tag: 'input', type: 'text', css: {width: '89px'}}]
+							return 'val===\''+this.children[1].value+'\''
+						}, children: [
+							{tag: 'span', text: '文本：'}, {tag: 'input', type: 'text', css: {width: '89px'}}]
 						});
 					ruleDom.ruleDetail.appendChild(el);
 					ruleDom.ruleDetail.rules=[el.getRule.bind(el)];
@@ -828,7 +834,6 @@
 							return [{active:cs[0].checked,isUnion:cd[0].isUnion,value:cd[2].value}]
 						};
 						dom.getInfo = function(){
-
 							if(cs[0].checked){
 								return (cd[0].isUnion?'或':'且')+text+'"'+cd[2].value+'" ';
 							}else return''
@@ -849,7 +854,6 @@
 					var el2 = createEl('结束文本：',true,function(v){
 						return unicodeStr(v.value)+'$'
 					});
-
 					ruleDom.ruleDetail.appendChild(definedDom({children:[el0,el1,el2]}));
 					ruleDom.ruleDetail.rules=[el0.getRule,el1.getRule,el2.getRule];
 					ruleDom.ruleDetail.infos=[el0.getInfo,el1.getInfo,el2.getInfo];
@@ -866,25 +870,25 @@
 				{text:'范围',func:function(){
 					ruleDom.ruleDetail.innerHTML='';
 					var el0 = definedDom('div',{
-							getRule:function(){
-								return '>'+(this.children[1].valid?'=':'')+this.children[2].value
-							},
-							css:{marginTop:'3px',float:'left'},
-							children:[
-								{tag:'span',text:'大于',class:'tgBox on'},
-								toggleActDom('等于',false),
-								{tag:'input',type:'number',css:{width:'89px'}}
-							]});
+						getRule:function(){
+							return '>'+(this.children[1].valid?'=':'')+this.children[2].value
+						},
+						css:{marginTop:'3px',float:'left'},
+						children:[
+							{tag:'span',text:'大于',class:'tgBox on'},
+							toggleActDom('等于',false),
+							{tag:'input',type:'number',css:{width:'89px'}}
+						]});
 					var el1 =definedDom('div',{
-							getRule:function(){
-								return '>'+(this.children[1].valid?'=':'')+this.children[2].value
-							},
-							css:{marginTop:'3px',float:'left'},
-							children:[
-								{tag:'span',text:'小于',class:'tgBox on'},
-								toggleActDom('等于',false),
-								{tag:'input',type:'number',css:{width:'89px'}}
-							]});
+						getRule:function(){
+							return '>'+(this.children[1].valid?'=':'')+this.children[2].value
+						},
+						css:{marginTop:'3px',float:'left'},
+						children:[
+							{tag:'span',text:'小于',class:'tgBox on'},
+							toggleActDom('等于',false),
+							{tag:'input',type:'number',css:{width:'89px'}}
+						]});
 					ruleDom.ruleDetail.appendChild(definedDom({children:[el0,el1]}));
 					ruleDom.ruleDetail.rules=[el0.getRule.bind(el0),el1.getRule.bind(el1)];
 				}}
@@ -964,7 +968,7 @@
 				ruleDetail:ruleDom.ruleDetail.datas.map(function(f){return f()})
 			};
 			var str ='列'+ ruleDom.cols.value.title + '的'+ruleDom.source.children[1].textContent+info;
-			 eval(result);
+			eval(result);
 			console.log(str);
 			var key = JSON.stringify(data);
 			var o ={
@@ -972,7 +976,6 @@
 				desc:str,
 				func:rule
 			};
-
 			for(var i= 0, r,l=filterRules.length;i<l;i++){
 				var _r=filterRules[i];
 				if(_r.key===key)r=_r;
@@ -982,7 +985,6 @@
 			anytable.initView(true);
 			return o;
 		};
-
 		var newRNavBtn = definedDom('div',{
 			class:'btn-r-create',
 			text:'生成规则',
@@ -992,7 +994,6 @@
 			class:'btn-r-clear',
 			text:'清空'
 		});
-
 		var rulePageNav = definedDom('div',{
 			class:'rules-page-nav',
 			children:[
@@ -1002,7 +1003,6 @@
 				newRNavBtn
 			]
 		});
-
 		var ruleNewPage = definedDom('div',{
 			children:[
 				ruleDom.cols,
@@ -1015,7 +1015,6 @@
 				ruleDom.active
 			]
 		});
-
 		var numberInput = function(value,func,opt){
 			return definedDom(extend({
 				min:0,
@@ -1071,29 +1070,28 @@
 						onchange:function(){
 							c.dragHelper.style.display =
 								c.cssRule.style.display = this.checked?'':'none';
+							c[anyId].isHidden=!this.checked;
+							wInput.onblur();
 						}
 					});
 					/**@this {Node}*/
 					var wInput = numberInput(c.offsetWidth,function(){
-						var v = parseInt(this.value);
-						if(isNaN(v))return v = c.offsetWidth;
-						if(v<opt.colMinWidth)c=opt.colMinWidth;
+						var v = parseInt(this.value)||parseInt(c.cssRule.width)||0;
+						if(v<opt.colMinWidth)v=opt.colMinWidth;
 						if(v>2000)v=2000;
 						this.value=v;
 						c.cssRule.style.width = v+'px'
 					});
 					c._wInput = wInput;
-
 					var ableSort = c[anyId].name!=='selectBox';
-
 					if(opt.sort){
 						var sort = c[anyId].sort;
 						var pInput = ableSort&&numberInput(sort.order,function(){
-							if(ableSort&&(sort.type==='asc'||sort.type==='desc')){
-								sort.order=this.value;
-								sort.run();
-							}
-						});
+								if(ableSort&&(sort.type==='asc'||sort.type==='desc')){
+									sort.order=this.value;
+									sort.run();
+								}
+							});
 						sort._prEl = pInput;
 						var typeEl = definedDom('td',{
 							class:'td-col-sort',
@@ -1154,8 +1152,8 @@
 									if(hoverOptCell){
 										colTables.forEach(function(th){
 											removeClass(th,'disable')
-										})
-										var row = c.parentNode
+										});
+										var row = c.parentNode;
 										var _cells = [].slice.call(row.cells)
 										optCols.replaceChild(hoverOptCell,hoverOptCell.fake);
 										hoverOptCell.removeAttribute('style');
@@ -1191,7 +1189,7 @@
 										}else{
 											addClass(th,'disable');
 										}
-									})
+									});
 									hoverOptCell = self;
 									hoverOptCell.start = [].indexOf.call(optCols.children,hoverOptCell);
 									var fake = self.cloneNode(true);
@@ -1244,7 +1242,6 @@
 			class:'any-foot dis-select',
 			children:settingBtn
 		});
-
 		// 总条数
 		var totals = definedDom('span',{text:'0',css:{
 			margin:'0 2px'
@@ -1260,7 +1257,7 @@
 			curPage,
 			{tag:'button',text:'确定',onclick:function(){
 				if(curPage.value!==curPNum.textContent)
-				anytable.pager.cur=parseInt(curPage.value);
+					anytable.pager.cur=parseInt(curPage.value);
 				goTo.parentNode.replaceChild(currentPage,goTo)
 			}}
 		]});
@@ -1273,9 +1270,9 @@
 				currentPage.parentNode.replaceChild(goTo,currentPage);
 			},
 			class:'now',children:[
-			{tag:'span',text:'第 '},curPNum,{tag:'span',text:' 页'},
-			{tag:'span',text:' / 共 '},totalPNum,{tag:'span',text:' 页'}
-		]});
+				{tag:'span',text:'第 '},curPNum,{tag:'span',text:' 页'},
+				{tag:'span',text:' / 共 '},totalPNum,{tag:'span',text:' 页'}
+			]});
 		var btnPrev = definedDom({
 			onclick:function(e){
 				stopEvent(e);
@@ -1285,28 +1282,24 @@
 			tag:'span',
 			class:'page prev',
 			html:'<svg height="12px" version="1.1" viewBox="0 0 32 32" width="32px" xmlns="http://www.w3.org/2000/svg"><g><rect  height="32" width="32"/></g><g><polygon points="22,4 10,15.999 22,28  "/></g></svg>'});
-
 		var btnFirst = definedDom({
 			onclick:function(e){
 				stopEvent(e);
 				anytable.pager.cur=1;
 			},
 			title:'首页',tag:'span',class:'page first',html:'<svg  height="12"  viewBox="0 0 32 32" width="32" ><g><rect height="32" width="32"/></g><g><path d="M20,15.999L32,28V4L20,15.999z M18,28V4L6,15.999L18,28z M0,28h4V4H0V28z"/></g></svg>'});
-
 		var btnNext = definedDom({
 			onclick:function(e){
 				stopEvent(e);
 				anytable.pager.cur++;
 			},
 			title:'下一页',tag:'span',class:'page next',html:'<svg height="12" version="1.1" viewBox="0 0 32 32" width="32" ><g><rect fill="none" height="32" width="32"/></g><g><polygon points="10,2.001 24,16 10,30  "/></g></svg>'});
-
 		var btnLast = definedDom({
 			onclick:function(e){
 				stopEvent(e);
 				anytable.pager.cur=-1;
 			},
 			title:'末页',tag:'span',class:'page last',html:'<svg height="12" version="1.1" viewBox="0 0 32 32" width="32" ><g><rect height="32" width="32"/></g><g><path d="M0,28l12-12.001L0,4V28z M14,28l12-12.001L14,4V28z M28,4v24h4V4H28z"/></g></svg>'});
-
 		var createSizeEl = function(d){
 			d = parseInt(d);
 			if(isNaN(d))return;
@@ -1316,7 +1309,6 @@
 				pageSizeShow.replaceChild(sizePNm,pageSizeChoose);
 			}}
 		};
-
 		var szIn = definedDom({tag:'input',type:'number',
 			onfocus:function(){
 				lisBox.style.display='';
@@ -1330,8 +1322,8 @@
 				setTimeout(function(){lisBox.style.display='none';},300);
 			},
 			onkeydown:function(e){
-			if(13===e.keyCode)this.nextSibling.click();
-		}});
+				if(13===e.keyCode)this.nextSibling.click();
+			}});
 
 		var pSz=[];
 		if(opt.paging&&opt.paging.pageSize&&opt.paging.pageSize){
@@ -1394,7 +1386,6 @@
 				]}
 			]
 		});
-
 		var container = definedDom('div', {
 			class: 'anytable',
 			id: tId,
@@ -1415,7 +1406,7 @@
 		var asyncHW = function () {
 			tableHead.style.width = (widthDetectDom.offsetWidth || opt.scrollBarWidth) + 'px';
 			[].forEach.call(tableHead.querySelectorAll('[class*=anycell_]'),function(el){
-				el.style.height = (el.parentNode.offsetHeight||o.rowHeight)+'px'
+				el.style.height = (el.parentNode.offsetHeight||opt.rowHeight)+'px'
 			})
 		};
 		// 同步头表格位置
@@ -1446,86 +1437,87 @@
 					width:'100%',
 					cursor:'pointer'
 				}
-			}
+			};
 			var dragFunc = function(e){if (opt.dragColumn&& !o.frozen) {
-				stopEvent(e);
-				var self = this;
-				var _up = window.onmouseup;
-				var _mv = window.onmouseover;
-				var colMoveTimer = -1;
-				window.onmouseup = function (e) {
-					clearInterval(scrollTimer);
-					clearTimeout(hoverTimer);
-					clearTimeout(colMoveTimer);
-					window.onmouseover = _mv;
-					window.onmouseup = _up;
-					if (dragCol) {
-						if (dragCol && dragCol.remove)dragCol.remove();
-						dragCol.row.replaceChild(dragCol.col, dragCol.fake);
-						var cols =[].slice.call(hTable.querySelectorAll(hCellSelector));
-						moveColumnByCols(dragCol.row);
-						dragCol = undefined;
-					}
-					if(optsOut.parentNode&&optCols.parentNode)refreshOptCols();
-					if (_up)_up.call(window, e);
-				};
-				// 按住超过300 毫秒进入在拖拽(伪)状态
-				hoverTimer = setTimeout(function () {
-					var col = self.parentNode;
-					var row=col.parentNode;
-					var subCols =col.querySelectorAll(hCellSelector);
-					var selfRec = self.getBoundingClientRect();
-					var boxRec = container.getBoundingClientRect();
-					dragCol = col.cloneNode(true);
-					dragCol.style.top =selfRec.top-boxRec.top+'px';
-					dragCol.cols = subCols;
-					addClass(dragCol, 'dragCopy');
-					dragCol.row = row;
-					dragCol._x = selfRec.left-boxRec.left;
-					dragCol.style.left =dragCol._x+'px';
-					dragCol._max = row.offsetWidth - col.offsetLeft - col.offsetWidth;
-					dragCol._min = - col.offsetLeft;
-					dragCol.fake = col.cloneNode(false);
-					dragCol.fake.style.width = col.offsetWidth+'px';
-					dragCol.fake.style.height = col.offsetHeight+'px';
-					var space = self.cloneNode(false);
-					dragCol.fake.className += ' fake';
-					dragCol.col = col;
-					row.replaceChild(dragCol.fake, dragCol.col);
-					dragCol.fake.appendChild(space);
-					container.appendChild(dragCol);
-					dragCol.x = e.clientX;
-					window.onmousemove = function (e) {
+				if(e.button===0){
+					stopEvent(e);
+					var self = this;
+					var _up = window.onmouseup;
+					var _mv = window.onmouseover;
+					var colMoveTimer = -1;
+					window.onmouseup = function (e) {
 						clearInterval(scrollTimer);
-						e.preventDefault();
+						clearTimeout(hoverTimer);
 						clearTimeout(colMoveTimer);
-						colMoveTimer = setTimeout(function () {
-							if (dragCol) {
-								detectSideInsertByClientX(e.clientX-row.getBoundingClientRect().left, dragCol.fake,row);
-								var moved = e.clientX - dragCol.x;
-								var maxMove = dragCol._max;
-								var minMove = dragCol._min;
-								if (moved < minMove)moved = minMove;
-								if (moved > maxMove)moved = maxMove;
-								dragCol.style.left = dragCol._x + moved + 'px';
-								var visibleRange = tableHead.getBoundingClientRect();
-								var minX = visibleRange.left;
-								var maxX = minX + visibleRange.width;
-								if (e.clientX < minX) {
-									scrollTimer = setInterval(function () {
-										tableBody.scrollLeft--;
-									}, 0);
-								} else if (e.clientX > maxX) {
-									scrollTimer = setInterval(function () {
-										tableBody.scrollLeft++;
-									}, 0);
-								}
-							}
-						}, 0);
-						if (_mv)_mv.call(window, e);
+						window.onmouseover = _mv;
+						window.onmouseup = _up;
+						if (dragCol) {
+							if (dragCol && dragCol.remove)dragCol.remove();
+							dragCol.row.replaceChild(dragCol.col, dragCol.fake);
+							moveColumnByCols(dragCol.row);
+							dragCol = undefined;
+						}
+						if(optsOut.parentNode&&optCols.parentNode)refreshOptCols();
+						if (_up)_up.call(window, e);
 					};
-				}, 300)
-			}}
+					// 按住超过300 毫秒进入在拖拽(伪)状态
+					hoverTimer = setTimeout(function () {
+						var col = self.parentNode;
+						var row=col.parentNode;
+						var subCols =col.querySelectorAll(hCellSelector);
+						var selfRec = self.getBoundingClientRect();
+						var boxRec = container.getBoundingClientRect();
+						dragCol = col.cloneNode(true);
+						dragCol.style.top =selfRec.top-boxRec.top+'px';
+						dragCol.cols = subCols;
+						addClass(dragCol, 'dragCopy');
+						dragCol.row = row;
+						dragCol._x = selfRec.left-boxRec.left;
+						dragCol.style.left =dragCol._x+'px';
+						dragCol._max = row.offsetWidth - col.offsetLeft - col.offsetWidth;
+						dragCol._min = - col.offsetLeft;
+						dragCol.fake = col.cloneNode(false);
+						dragCol.fake.style.width = col.offsetWidth+'px';
+						dragCol.fake.style.height = col.offsetHeight+'px';
+						var space = self.cloneNode(false);
+						dragCol.fake.className += ' fake';
+						dragCol.col = col;
+						row.replaceChild(dragCol.fake, dragCol.col);
+						dragCol.fake.appendChild(space);
+						container.appendChild(dragCol);
+						dragCol.x = e.clientX;
+						window.onmousemove = function (e) {
+							clearInterval(scrollTimer);
+							e.preventDefault();
+							clearTimeout(colMoveTimer);
+							colMoveTimer = setTimeout(function () {
+								if (dragCol) {
+									detectSideInsertByClientX(e.clientX-row.getBoundingClientRect().left, dragCol.fake,row);
+									var moved = e.clientX - dragCol.x;
+									var maxMove = dragCol._max;
+									var minMove = dragCol._min;
+									if (moved < minMove)moved = minMove;
+									if (moved > maxMove)moved = maxMove;
+									dragCol.style.left = dragCol._x + moved + 'px';
+									var visibleRange = tableHead.getBoundingClientRect();
+									var minX = visibleRange.left;
+									var maxX = minX + visibleRange.width;
+									if (e.clientX < minX) {
+										scrollTimer = setInterval(function () {
+											tableBody.scrollLeft--;
+										}, 0);
+									} else if (e.clientX > maxX) {
+										scrollTimer = setInterval(function () {
+											tableBody.scrollLeft++;
+										}, 0);
+									}
+								}
+							}, 0);
+							if (_mv)_mv.call(window, e);
+						};
+					}, 300)
+				}
+			}};
 			if(o.cols){
 				var colSpan=0;
 				var _thT = definedDom({tag:'th',children:{
@@ -1624,6 +1616,7 @@
 			anytable.css.insertRule('#' + tId + ' .'+ o.cls + '{}', index);
 			var cssRule = anytable.css.rules[index];
 			cssRule.style.width = (o.width||100)+'px';
+			cssRule.style.display = o.isHidden?'none':'';
 			if(o.name==='selectBox')cssRule.style.padding=0;
 			var hoverTimer = -1;
 			var scrollTimer = -1;
@@ -1677,7 +1670,6 @@
 			h=definedDom(h);
 			if(o.sort)o.sort.el = h;
 			setUnEnumProps(o, '_c', clsN);
-
 			var dragHelper =definedDom({
 				// 拖拽区域
 				tag: 'div',
@@ -1686,17 +1678,18 @@
 					if (opt.changeWidth) {
 						e.preventDefault();
 						e.stopPropagation();
-						this['_x'] = e.pageX;
+						this['_x'] = e.clientX;
 						this['_w'] = h.offsetWidth;
 						auxiliaryLine.style.display = '';
-						auxiliaryLine.style.left = e.pageX - container.offsetLeft + 'px';
+						var clientLeft = container.getBoundingClientRect().left;
+						auxiliaryLine.style.left = e.clientX -clientLeft - container.offsetLeft + 'px';
 						var self = this;
 						var _up = window.onmouseup;
 						var _mv = window.onmouseover;
 						window.onmousemove = function (e) {
-							var w = self._w + e.pageX - self._x;
-							if (w >= opt.colMinWidth && e.pageX > 0) {
-								auxiliaryLine.style.left = e.pageX - container.offsetLeft + 'px';
+							var w = self._w + e.clientX - self._x;
+							if (w >= opt.colMinWidth && e.clientX > 0) {
+								auxiliaryLine.style.left = e.clientX -clientLeft - container.offsetLeft + 'px';
 								h.style.width = w + 'px';
 							}
 							if(optsOut.parentNode)
@@ -1714,7 +1707,7 @@
 							delete self._x;
 							asyncHW();
 							if(optsOut.parentNode&&optCols.parentNode&&th._wInput){
-								th._wInput.value = h.offsetWidth;
+								th._wInput.value =h.offsetWidth||parseInt(th.cssRule.style.width)||opt.minWidth;
 							}
 							if (_up)_up.call(window, e);
 						}
@@ -1805,7 +1798,7 @@
 						children: cols
 					}
 				}
-			})
+			});
 			return table;
 		};
 		// 行数据包装器
@@ -1819,6 +1812,7 @@
 				pageIndex:{get: function () {return anytable.vData.indexOf(d);}},
 				allIndex: {get: function () {return anytable.data.indexOf(d);}}
 			});
+			return d;
 		};
 		var hoverR, clickR,selectTimer=-1;
 		// 创建cell内容
@@ -1841,7 +1835,7 @@
 			});
 			if ('function' === typeof c.renderer) {
 				//val,item,rowIndex,colName
-				var result = c.renderer.call(dom, val, d, d[anyId].renderedIndex, c.name);
+				var result = c.renderer.call(dom, val, d, d[anyId], c.name);
 				if (result instanceof Node) {
 					func(result);
 					dom.appendChild(result);
@@ -1854,6 +1848,38 @@
 		// 插入表行
 		var createRow = function (d) {
 			var selBox;
+			var rowLine = opt.dragRowHeight&& definedDom('div',{
+					class:'row-line',
+					onclick:function(e){stopEvent(e);},
+					onmousedown:function(e){
+						if(e.button===0){
+							stopEvent(e);
+							var startY = e.clientY;
+							var _up = window.onmouseup;
+							var _mv = window.onmousemove;
+							var _lv = window.onmouseleave;
+							var _h = tr.height;
+							var sly = rowLine.style;
+							sly.height='100%';
+							sly.top='3px';
+							window.onmouseleave=window.onmouseup=function(){
+								stopEvent(e);
+								sly.height='';
+								sly.top='';
+								window.onmousemove = _mv;
+								window.onmouseup=_up;
+								window.onmouseleave=_lv;
+								refreshDatasPosition(tr[anyId].renderedIndex);
+							};
+							window.onmousemove = function(e){
+								stopEvent(e);
+								var moved = e.clientY-startY;
+								var h = _h+moved;
+								if(h>=opt.rowHeight)tr.height=h;
+							}
+						}
+					}
+			});
 			var tr = definedDom({
 				tag: 'tr',
 				data:d,
@@ -1864,6 +1890,9 @@
 					addClass(this,'hover');
 				},
 				onclick: function (e) {
+					if(typeof opt.rowClick==='function'){
+						opt.rowClick.call(this,d);
+					};
 					if (opt.clickCanSelectRow && e.target !== this.selBox) {
 						var isSelect = this[anyId].selected;
 						if (isSelect)this.desSelect();
@@ -1912,7 +1941,7 @@
 						opt.rowSelectChange.call(this, d, this[anyId])
 					}
 				},
-				children: opt.cols.map(function (c,index) {
+				children: [rowLine].concat(opt.cols.map(function (c,index) {
 					var func = function(r){
 						if (c.name === 'selectBox')selBox = r;
 					};
@@ -1944,7 +1973,7 @@
 						}
 					});
 					return td
-				})
+				}))
 			});
 			tr[anyId]=d[anyId];
 			if (selBox) {
@@ -1964,7 +1993,6 @@
 								tr.cells[i].dom.style.height = x + 'px';
 							}
 						}
-						refreshDatasPosition(tr[anyId].renderedIndex);
 					}
 				}
 			});
@@ -1983,38 +2011,37 @@
 					if(isF)frozenCols.push(_t)
 				}
 				var extraThs=[];
-				hTable.querySelectorAll('thead table').forEach(function(t){
+				[].forEach.call(hTable.querySelectorAll('thead table'),function(t){
 					var lastCol = t.querySelector('th:last-child [class*=anycell__]');
 					if(lastCol&&-1!==frozenCols.indexOf(lastCol.parentNode)){
 						extraThs.push(t.querySelector('tr:first-child>th'))
 					}
 				});
-				frozenSize=frozenCols.length;
+				opt.freeze=frozenSize=frozenCols.length;
 				[].push.apply(frozenCols,extraThs);
 				tableBody.onHorizontalScroll();
 			}else if(index instanceof Node &&'TH'===index.tagName&&index.cssRule){
-					var cIndex = cs.indexOf(index);
-					if(frozen===index[anyId].frozen&&index.style.zIndex==cIndex)return;
-					index[anyId].frozen=frozen;
-					var zIndex = frozen? cs.length-cIndex:0;
-					//index.style.zIndex=frozen?zIndex:0;
-					index.style.outline=frozen?'none':'';
-					index.children[0].style.setProperty(
-						'border-right',
-						frozen?'rgb(222, 222, 222) solid 1px':'',
-						frozen?'important':'');
-					var rs = tbody.rows;
-					for(var i= 0,l=rs.length;i<l;i++){
-						rs[i].cells[cIndex].style.zIndex=zIndex;
-					}
-					if(!frozen){
-						translate3D(index.cssRule.style,0,0,0);
-						translate3D(index.dragHelper,0,0,0);
-						translate3D(index.thOpt,0,0,0);
-					}
+				var cIndex = cs.indexOf(index);
+				if(frozen===index[anyId].frozen&&index.style.zIndex==cIndex)return;
+				index[anyId].frozen=frozen;
+				var zIndex = frozen? cs.length-cIndex:0;
+				//index.style.zIndex=frozen?zIndex:0;
+				index.style.outline=frozen?'none':'';
+				index.children[0].style.setProperty(
+					'border-right',
+					frozen?'rgb(222, 222, 222) solid 1px':'',
+					frozen?'important':'');
+				var rs = tbody.rows;
+				for(var i= 0,l=rs.length;i<l;i++){
+					rs[i].cells[cIndex].style.zIndex=zIndex;
+				}
+				if(!frozen){
+					translate3D(index.cssRule.style,0,0,0);
+					translate3D(index.dragHelper,0,0,0);
+					translate3D(index.thOpt,0,0,0);
+				}
 			}
 		};
-
 		extend(this, {
 			id:anyId,
 			data:[],
@@ -2036,6 +2063,10 @@
 				for(var k in anytable)delete  anytable[k];
 			},
 			pager:{},
+			filter:function(func){
+				if(func)opt.filter = func;
+				this.initView();
+			},
 			freeze:function(index){
 				index = parseInt(index)||0;
 				if(index<-1)index=0;
@@ -2085,7 +2116,7 @@
 				var fDatas = anytable.fData;
 				var aDatas = anytable.data;
 				var target = fDatas[index];
-				var aIndex = target&&target.allIndex;
+				var aIndex = target&&target[anyId]&&target[anyId].allIndex;
 				var vStart,vEnd;
 				var rs = tbody.rows;
 				if(target){
@@ -2134,8 +2165,8 @@
 				}
 				for(var i= 0,rs=tbody.rows,l=rs.length;i<l;i++){
 					var r=rs[i];
-					if(r.renderedIndex===index)
-						tableBody.replaceChild(createRow( anytable.data[index],index),r);
+					if(r[anyId].renderedIndex===index)
+						tbody.replaceChild(createRow( anytable.data[index],index),r);
 				}
 				processDatas();
 				refreshDatasPosition(index-1);
@@ -2147,29 +2178,29 @@
 				var ds = anytable.data,m=ds.length- 1,_opt;
 				if('number'===typeof index){
 					if(index<0||index>=anytable.fData.length)return;
-					 allIndex = anytable.fData[index][anyId].allIndex;
+					allIndex = anytable.fData[index][anyId].allIndex;
 					anytable.data.splice(allIndex,1);
 					for(;i<l;i++){
-						 r=rs[i];
+						r=rs[i];
 						if(r[anyId].renderedIndex===index)r.remove();
 					}
 					start = index-1;
 				}else if(Array.isArray(index)){
-						index = index.sort().reverse();
-						for(;i<l;i++){
-							 r=rs[i];
-							if(-1!==index.indexOf(r[anyId].renderedIndex))r.remove();
-						}
-						for(var n = 0,fD = anytable.fData;n<index.length;n++){
-							fD[index[n]]._deleted=true;
-						}
-						for(;m>-1;m--){
-							 _opt = ds[m];
-							if(_opt._deleted)ds.splice(m,1);
-						}
+					index = index.sort().reverse();
+					for(;i<l;i++){
+						r=rs[i];
+						if(-1!==index.indexOf(r[anyId].renderedIndex))r.remove();
+					}
+					for(var n = 0,fD = anytable.fData;n<index.length;n++){
+						fD[index[n]]._deleted=true;
+					}
+					for(;m>-1;m--){
+						_opt = ds[m];
+						if(_opt._deleted)ds.splice(m,1);
+					}
 				}else if('function' === typeof index){
 					for(var x= 0,fds = anytable.fData,fl=fds.length;x<fl;x++){
-						 _opt = fds[x];
+						_opt = fds[x];
 						if(!index(_opt)){_opt._deleted=true}
 					}
 					for(;i<l;i++){
@@ -2212,7 +2243,7 @@
 			},
 			selectedRows: function (index) {
 				if(!anytable.fData)return;
-				var _rs ;
+				var _rs=[] ;
 				for (var i = 0, rs = anytable.fData, l = rs.length; i < l; i++) {
 					var r = rs[i];
 					if (r[anyId].selected){
@@ -2260,7 +2291,6 @@
 					processDatas();
 					refreshDatasPosition(0);
 					var datas = anytable.vData;
-					var r = 0;
 					tbody.innerHTML = '';
 					var bh = opt.height;
 					var length = Math.min(datas.length, parseInt(bh / opt.rowHeight));
@@ -2295,8 +2325,9 @@
 					opt.dataGainer(opt.url,opt.method,params,
 						function(data){
 							var rows = data&&data[opt.root];
+							if(!rows&&Array.isArray(data))rows=data;
 							if(!rows||!rows.length){
-								anytable.showMsg(data.message||'暂无数据!')
+								anytable.showMsg(opt.noDataText)
 							}else {
 								anytable.pager.total = data.total;
 								anytable.hideMsg();
@@ -2305,8 +2336,15 @@
 								tableBody.onHorizontalScroll();
 							}
 						},
-						function(data,message){
-							anytable.showMsg(data&&data.message||message||'数据请求失败!')
+						function(data){
+							anytable.showMsg(opt.loadErrorText);
+							console.log(
+								'\n####Anytable Load Error:####\n',
+								'\n\tAPI URL:',opt.url,
+								'\n\tMethod:',opt.method,
+								'\n\tParams:',params,
+								'\n\tResult:',data,
+								'\n\n')
 						}
 					)
 				}
@@ -2343,7 +2381,7 @@
 					return cur||0;
 				},
 				set:function(v){
-					var needRefresh = v !== cur;
+					var needRefresh = cur&&(v !== cur);
 					var m = Math.ceil(total/anytable.pager.size);
 					curPage.max = m;
 					if(v==-1||v>=m){
@@ -2404,10 +2442,9 @@
 				}
 			}
 		});
-
 		this.initHead();
 		this.initFoot();
-		this.freeze(opt.freeze)
+		this.freeze(opt.freeze);
 		dom.appendChild(container);
 		if(opt.autoLoad){
 			this.load()
